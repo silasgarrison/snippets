@@ -1,0 +1,33 @@
+
+<html>
+	<head>
+		<style>
+			body {
+				margin:0px;
+				background-color:#000;
+			}
+			#gameBoard {
+				background-color:#FFF;
+			}
+		</style>
+	</head>
+	<body>
+		<div align="center" style="padding-top:75px;">
+			<canvas id="gameBoard" width="500" height="450" style="border:1px solid #CCC;"></canvas>
+		</div>
+		
+		<script src="../function-prototypes.js"></script>
+		<script src="../misc-prototypes.js"></script>
+		<script src="snake.js"></script>
+		<script>
+			window.addEventListener("load",function(){
+				snake.init();
+				$("gameBoard").onclick=function(){
+					if(!snake.isGoing()){
+						snake.start();
+					}
+				};
+			});
+		</script>
+	</body>
+</html>

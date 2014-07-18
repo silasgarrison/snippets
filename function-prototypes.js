@@ -28,15 +28,19 @@
  	}).After(5000); // Resumes this instance after 5s
 */
 
-Function.prototype.After = function(tm,args,sc){
-	var fn = this;
-	var _fn = function(){
-		return fn.apply(sc || window,args || []);
+Function.prototype.After = function(ms,args,sc){
+	var fn,_tmo,_controls,_fn;
+
+	fn = this;
+	_fn = function(){
+		return fn.apply(_controls.getScope(),_controls.getArgs());
 	};
-	
-	var _tmo = setTimeout(_fn,tm);
-	
-	return {
+	// Extended methods for controlling the execution
+	return _controls = ({
+		start : function(){
+			_tmo = setTimeout(_fn,ms);
+			return this;
+		},
 		cancel : function(){
 			clearTimeout(this.getInstance());
 			return this;
@@ -46,82 +50,67 @@ Function.prototype.After = function(tm,args,sc){
 			return this;
 		},
 		getArgs : function(){
-			return args;
-		},
-		setScope : function(s){
-			sc = s;
-			return this;
-		},
-		getScope : function(){
-			return sc;
+			return args || [];
 		},
 		getInstance : function(){
 			return _tmo;
 		},
-		setDelay : function(t){
-			this.cancel();
-			tm = t;
-			_tmo = setTimeout(_fn,tm);
+		getScope : function(){
+			return sc || window;
+		},
+		setScope : function(s){
+			sc = s || window;
 			return this;
 		},
 		exec : function(){
 			return _fn();
+		},
+		setDelay : function(t){
+			// Set timing
+			ms = t;
+			// Kill off current timeout and restart it within new timing
+			return this.cancel().start();
 		}
-	};
+	}).start();
 };
 
-Function.prototype.Every = function(tm,args,sc,maxCnt){
-	var fn = this;
-	var args = args || [];
-	var _cnt = 0;
-	var _paused = false;
-	var _fn = function(frc){
-		if(!_paused || frc){
+Function.prototype.Every = function(ms,args,sc,maxCnt){
+	var fn,_int,_cnt,_paused,_running,_controls,_fn;
+	fn = this;
+	_cnt = 0;
+	_paused = false;
+	_running = false;
+	_fn = function(frc){
+		// Make sure it's not paused or force it
+		if(!_controls.isPaused() || frc){
+			// Increment the execution count
 			++_cnt;
-			var _args = args.slice(0);
-				_args.push({_int:_int,_cnt:_cnt});
-			var _res = fn.apply(sc || window,_args);
-			
-			if(maxCnt && _cnt >= maxCnt){
-				clearInterval(_int);
-			}
+			// Add an argument containing info on this execution - use slice() to clone
+			var _args = _controls.getArgs().slice(0);
+				_args.push({_int:_controls.getInstance(),_cnt:_controls.getCount()});
+			// Execute
+			var _res = fn.apply(_controls.getScope(),_args);
+			// Determine if it should stop
+			(_controls.getMaxCount() && _controls.getCount() >= _controls.getMaxCount()) && _controls.cancel();
 			
 			return _res;
 		}
 		
-		return "Execution Paused";
+		return "Execution paused";
 	};
-	
-	var _int = setInterval(_fn,tm);
-	
-	return {
+	// Extended methods for controlling the execution
+	return _controls = ({
+		start : function(){
+			if(!this.isRunning()){
+				_running = true;
+				_int = setInterval(_fn,ms);
+			}
+			return this;
+		},
 		cancel : function(){
+			_running = false;
 			clearInterval(this.getInstance());
 			return this;
-		},
-		setArgs : function(a){
-			args = a;
-			return this;
-		},
-		getArgs : function(){
-			return args;
-		},
-		setScope : function(s){
-			sc = s;
-			return this;
-		},
-		getScope : function(){
-			return sc;
-		},
-		setMaxCount : function(cnt){
-			maxCnt = cnt;
-			return this;
-		},
-		getMaxCount : function(){
-			return maxCnt;
-		},
-		getInstance : function(){
-			return _int;
 		},
 		pause : function(){
 			_paused = true;
@@ -131,14 +120,53 @@ Function.prototype.Every = function(tm,args,sc,maxCnt){
 			_paused = false;
 			return this;
 		},
-		setDelay : function(t){
-			this.cancel();
-			tm = t;
-			_int = setInerval(_fn,tm);
+		restart : function(){
+			// Reset execution count
+			_cnt = 0;
+			// Start new interval (do this in case the max was already reached and it's not currently running)
+			return this.cancel().start();
+		},
+		isRunning : function(){
+			return _running;
+		},
+		isPaused : function(){
+			return _paused;
+		},
+		setArgs : function(a){
+			args = a;
+			return this;
+		},
+		getArgs : function(){
+			return args || [];
+		},
+		getInstance : function(){
+			return _int;
+		},
+		getCount : function(){
+			return _cnt;
+		},
+		getMaxCount : function(){
+			return maxCnt;
+		},
+		setMaxCount : function(cnt){
+			maxCnt = cnt;
+			return this;
+		},
+		getScope : function(){
+			return sc || window;
+		},
+		setScope : function(s){
+			sc = s || window;
 			return this;
 		},
 		exec : function(){
 			return _fn(true);
+		},
+		setDelay : function(t){
+			// Set timing
+			ms = t;
+			// Kill off current interval and restart it within new timing
+			return this.cancel().start();
 		}
-	};
+	}).start();
 };
