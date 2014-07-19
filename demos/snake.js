@@ -52,7 +52,7 @@ snake = (function(cfg){
 			_pallet.fillStyle = "#999";
 			_pallet.textAlign = "center";
 			_pallet.fillText("Tap or click to begin!",_board.width / 2, _board.height / 2);
-			if(typeof($("gameBoard").ontouchstart) != "undefined"){
+			if(typeof $("gameBoard").ontouchstart !== "undefined"){
 				swipeEvent($("gameBoard"),function(d){
 					if(_game.control && !_game.control.isPaused()){
 						_controls.doMove(d);
@@ -62,10 +62,10 @@ snake = (function(cfg){
 			else{
 				document.addEventListener("keyup",function(e){
 					if(_game.control && !_game.control.isPaused()){
-						var d = e.keyCode == _DOWN?"d":"";
-							d = e.keyCode == _RIGHT?"r":d;
-							d = e.keyCode == _UP?"u":d;
-							d = e.keyCode == _LEFT?"l":d;
+						var d = e.keyCode === _DOWN?"d":"";
+							d = e.keyCode === _RIGHT?"r":d;
+							d = e.keyCode === _UP?"u":d;
+							d = e.keyCode === _LEFT?"l":d;
 							
 						_controls.doMove(d);
 					}
@@ -140,8 +140,8 @@ snake = (function(cfg){
 			this.placeFood();
 			while(i < _points.length){
 				_p = _points[i];
-				_x=_p.x + ((_p.d == "r")?_p.s:0) - ((_p.d == "l")?_p.s:0);
-				_y=_p.y + ((_p.d == "d")?_p.s:0) - ((_p.d == "u")?_p.s:0);
+				_x=_p.x + ((_p.d === "r")?_p.s:0) - ((_p.d === "l")?_p.s:0);
+				_y=_p.y + ((_p.d === "d")?_p.s:0) - ((_p.d === "u")?_p.s:0);
 				
 				_pallet.beginPath();
 				_pallet.moveTo(_p.x,_p.y);
@@ -151,7 +151,7 @@ snake = (function(cfg){
 				_pallet.lineCap = "round";
 				_pallet.stroke();
 				
-				if(i+1 == _points.length){
+				if(i+1 === _points.length){
 					if(_x.isBetween(_game.food[0] - 3,_game.food[0] + 6) && _y.isBetween(_game.food[1] - 3,_game.food[1] + 6)){
 						this.generateFood();
 						_points[_points.length - 1].s += _config.growth;
@@ -160,7 +160,7 @@ snake = (function(cfg){
 					}
 				}
 				
-				if(i+1 == _points.length && _points.length > 1){
+				if(i+1 === _points.length && _points.length > 1){
 					while(j < _bounds.length){
 						if(_x.isBetween(_bounds[j].x0,_bounds[j].x1) && _y.isBetween(_bounds[j].y0,_bounds[j].y1) && _p.s > 0){
 							this.end();
@@ -184,43 +184,43 @@ snake = (function(cfg){
 		},
 		doMove : function(dir){
 			var _p = _points[_points.length - 1];
-			if(dir == "d" && "ud".indexOf(_p.d) == -1){
-				_points.push({x:_p.x + (_p.s * (_p.d=="l"?-1:1)),y:_p.y,s:0,d:"d"});
+			if(dir === "d" && "ud".indexOf(_p.d) === -1){
+				_points.push({x:_p.x + (_p.s * (_p.d==="l"?-1:1)),y:_p.y,s:0,d:"d"});
 			}
-			else if(dir == "r" && "lr".indexOf(_p.d) == -1){
-				_points.push({x:_p.x,y:_p.y + (_p.s * (_p.d=="u"?-1:1)),s:0,d:"r"});
+			else if(dir === "r" && "lr".indexOf(_p.d) === -1){
+				_points.push({x:_p.x,y:_p.y + (_p.s * (_p.d==="u"?-1:1)),s:0,d:"r"});
 			}
-			else if(dir == "u" && "ud".indexOf(_p.d) == -1){
-				_points.push({x:_p.x + (_p.s * (_p.d=="l"?-1:1)),y:_p.y,s:0,d:"u"});
+			else if(dir === "u" && "ud".indexOf(_p.d) === -1){
+				_points.push({x:_p.x + (_p.s * (_p.d==="l"?-1:1)),y:_p.y,s:0,d:"u"});
 			}
-			else if(dir == "l" && "lr".indexOf(_p.d) == -1){
-				_points.push({x:_p.x,y:_p.y + (_p.s * (_p.d=="u"?-1:1)),s:0,d:"l"});
+			else if(dir === "l" && "lr".indexOf(_p.d) === -1){
+				_points.push({x:_p.x,y:_p.y + (_p.s * (_p.d==="u"?-1:1)),s:0,d:"l"});
 			}
 			
 			return this;
 		},
 		setPoint : function(p,i,l){
-			if(p.x + p.s == _board.width && p.d == "r" && i+1==l){
+			if(p.x + p.s === _board.width && p.d === "r" && i+1===l){
 				_points.push({x:1,y:p.y,s:0,d:"r"});
 			}
-			else if(p.y + p.s == _board.height && p.d == "d" && i+1==l){
+			else if(p.y + p.s === _board.height && p.d === "d" && i+1===l){
 				_points.push({x:p.x,y:1,s:0,d:"d"});
 			}
-			else if(p.x - p.s == 0 && p.d == "l" && i+1==l){
+			else if(p.x - p.s === 0 && p.d === "l" && i+1===l){
 				_points.push({x:_board.width,y:p.y,s:0,d:"l"});
 			}
-			else if(p.y - p.s == 0 && p.d == "u" && i+1==l){
+			else if(p.y - p.s === 0 && p.d === "u" && i+1===l){
 				_points.push({x:p.x,y:_board.height,s:0,d:"u"});
 			}
 			else {
 				if(l > 1){
-					p.s += i+1==l?((p.s < _game.size)?1:0):i==0?-1:0;
+					p.s += i+1===l?((p.s < _game.size)?1:0):i===0?-1:0;
 				}
-				if(i==0 && (p.d == "r" || p.d == "d")){
-					++p[p.d == "r"?"x":"y"];
+				if(i===0 && (p.d === "r" || p.d === "d")){
+					++p[p.d === "r"?"x":"y"];
 				}
-				else if(i==0 && (p.d == "l" || p.d == "u")){
-					--p[p.d == "l"?"x":"y"];
+				else if(i===0 && (p.d === "l" || p.d === "u")){
+					--p[p.d === "l"?"x":"y"];
 				}
 			}
 			
