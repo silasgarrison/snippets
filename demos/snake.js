@@ -38,6 +38,7 @@ function swipeEvent(obj,fn){
 }
 
 snake = (function(cfg){
+	"use strict";
 	var _controls,_game={},_board,_pallet,_points,_config,_DOWN=40,_RIGHT=39,_UP=38,_LEFT=37;
 	
 	return _controls = {
