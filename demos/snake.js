@@ -4,6 +4,7 @@ function $(i){
 };
 
 function swipeEvent(obj,fn){
+	"use strict";
 	var swipes = {};
 	obj.addEventListener("touchstart",function(e){
 		e.preventDefault();
