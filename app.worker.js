@@ -41,12 +41,14 @@ app.addFeature("worker",function(){
 		// Run as a closure since we're creating it as a blob, it'll need to execute immediately
 		(function(target){
 			
-			var controls = null,
+			var master = {ctrl:{}},
+				controls = master.ctrl,
 				data = {},
 				map = {},
 				started = false,
 				log;
 			
+			// Shortcut
 			function log(msg){
 				controls.sendMessage("log",msg);
 			}
@@ -75,9 +77,11 @@ app.addFeature("worker",function(){
 					// Otherwise reply with an error
 					controls.log("Error: Invalid command received.");
 				},
+				// Sends the message back to the client
 				sendMessage : function(a,m){
 					target.postMessage({action:a,message:m});
 				},
+				// Attaches a method to the controller object on this worker to give greater functionality from the client
 				attach : function(args){
 					// Create a new method on the controls object
 					// Pass in args (supplied by the client) and the controls object as an argument
@@ -92,19 +96,42 @@ app.addFeature("worker",function(){
 						}
 					};
 				},
+				// Setter method to put data from the client on the worker
+				set : function(args){
+					controls[args.name] = args.value;
+					
+					// Execute any callback that may have be created with this setter on the client
+					if(args.hasCallBack){
+						controls.sendMessage("get" + name,controls[name]);
+					}
+				},
+				// Getter method to get/inspect objects on the worker side from the client
+				get : function(name){
+					// Execute the callback that was, presumably, created with this getter
+					controls.sendMessage("get" + name,controls[name]);
+				},
+				// Just a simple call back to write to the console
 				log : function(msg){
 					log(msg);
 				},
+				// Kill off the worker
 				stop : function(){
+					var key;
+					
 					log("I'm done");
+					
+					// In case they've attached large objects, delete all references
+					for(key in controls){
+						delete controls[key];
+					}
+					
 					target.close();
 				}
 			};
 		
 		})(this).init();
-		
 	};
-
+		
 	function create(fn){
 		var w,worker,blob,controls;
 		
@@ -136,6 +163,33 @@ app.addFeature("worker",function(){
 				// Post the message to the worker
 				worker.postMessage(cmd);
 			
+				return controls;
+			},
+			stop : function(){
+				controls.send("stop");
+			
+				return controls;
+			},
+			set : function(name,value,callback){
+				// Create a corresponding callback that the worker will call with the passed in function
+				if(callback){
+					controls["set" + name] = function(args){
+						callback(args);
+					};
+				}
+				
+				controls.send("set",{name:name,value:value,hasCallBack:!!callback});
+			
+				return controls;
+			},
+			get : function(name,callback){
+				// Create a corresponding callback that the worker will call with the passed in function
+				controls["get" + name] = function(args){
+					callback(args);
+				};
+				
+				controls.send("get",name);
+					
 				return controls;
 			},
 			attach : function(name,fnSend,fnReceive){
