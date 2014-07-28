@@ -1,7 +1,9 @@
 /**
  * @summary     app.worker.js
  * @description Simplifies using web workers by creating inline workers via Blob objects and an easier API
- * @version     1.0
+ * @version     1.1
+ 	> 1.0 Initial version
+	> 1.1 Added basic getters and setters (with optional callbacks) for passing data back and forth to the worker
  * @file        app.worker.js
  * @author      Silas Garrison (http://silasgarrison.com/)
  *
@@ -99,7 +101,7 @@ app.addFeature("worker",function(){
 					
 					// Execute any callback that may have be created with this setter on the client
 					if(args.hasCallBack){
-						controls.sendMessage("get" + name,controls[name]);
+						controls.sendMessage("set" + name,controls[name]);
 					}
 				},
 				// Getter method to get/inspect objects on the worker side from the client
@@ -127,7 +129,7 @@ app.addFeature("worker",function(){
 			};
 		
 		})(this).init();
-	};
+	}
 		
 	function create(fn){
 		var w,worker,blob,controls;
@@ -212,7 +214,7 @@ app.addFeature("worker",function(){
 				return controls;
 			}
 		};
-	};
+	}
 	
 	this.create = create;
 	
