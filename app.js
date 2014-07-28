@@ -44,7 +44,7 @@
 
 var app = (function(){
 	"use strict";
-	
+
 	var _app,
 		register,
 		addFeature,
@@ -53,78 +53,78 @@ var app = (function(){
 		accessors,
 		copy,
 		clone;
-	
+
 	function _app(){
 		return this;
 	};
-	
+
 	function register(obj,key,val){
 		obj[key] = val;
 		return obj;
 	};
-	
+
 	function addFeature(name,engine){
 		engine.contructor = this;
 		engine.prototype = accessors;
 		return register(this,name,new engine());
 	};
-	
+
 	function removeFeature(name){
 		delete this[name];
 		return this;
 	};
-	
+
 	function addParam(name,param){
 		this[name] = param;
 		return this;
 	};
-	
+
 	function addParams(params){
 		copy(params,this);
 		return this;
 	};
-	
+
 	function copy(src,target,overwrite){
 		var overwrite = typeof overwrite === "boolean"?overwrite:true,
 			key,
 			src = clone(src);
-	
+
 		for(key in src){
 			if(typeof target[key] === "undefined" || overwrite){
 				target[key] = src[key];
 			}
 		}
-	
+
 		return target;
 	};
-	
+
 	function clone(obj){
 		var newObj,
 			fn = function(){return this;};
-	
+
 		fn.prototype = obj;
 		newObj = new fn();
 		newObj.constructor = obj;
-	
+
 		return newObj;
 	};
-	
+
 	accessors = {
 		addFeature : addFeature,
 		removeFeature : removeFeature,
 		addParam : addParam,
 		addParams : addParams
 	};
-	
+
 	// Instantiate this object with the typical accessors or features
 	_app.prototype = accessors;
 	inst = new _app();
-	
+
 	// Utilities helpful to the app
 	inst.addParam("utils",{
 		copy : copy,
 		clone : clone
 	});
-	
+
 	return inst;
 })();
