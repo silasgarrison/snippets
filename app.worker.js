@@ -41,10 +41,7 @@ app.addFeature("worker",function(){
 		// Run as a closure since we're creating it as a blob, it'll need to execute immediately
 		(function(target){
 			
-			var master = {ctrl:{}},
-				controls = master.ctrl,
-				data = {},
-				map = {},
+			var controls = null,
 				started = false,
 				log;
 			
