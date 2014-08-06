@@ -12,25 +12,27 @@
  ** Examples:
  	var fooData = [{value1:"foo baz",someOption:"config",nums:1056,useIt:false,lastCol:"final"},
 					{value1:"foo baz",someOption:"config",nums:1056,useIt:false,lastCol:"final"}];
-	JSON.csv(fooData,{columnHeaders:true,delimiter:"\t"})
+	JSON.csv(fooData,{columnHeaders:true,delimiter:"\t"});
 	>> "value1,someOption,nums,useIt,lastCol
 		foo baz	config	1056	false	final
 		foo baz	config	1056	false	final"
 */
 
-JSON.csv = function(o,options){
+JSON.csv = function(o,args){
+	"use strict";
+	
 	var headers = [],
 		// Stringify the object then replace array literals
 		strData = this.stringify(o).replace(/^\[|\]$/g,""),
-		options = options?options:{},
-		defaults = {
-			columnHeaders : typeof options.columnHeaders !== "undefined"?options.columnHeaders:false,
-			delimiter : options.delimiter || ","
+		args = args?args:{},
+		options = {
+			columnHeaders : typeof args.columnHeaders !== "undefined"?args.columnHeaders:false,
+			delimiter : args.delimiter || ","
 			
 		};
 	
-	// Wrap primitive values (boolean/numbers) with quotes
-	strData = strData.replace(/":[A-Z0-9]+,"/ig,function(str){
+	// Wrap primitive values (boolean/numbers) with quotes so the rest of the RegEx will work
+	strData = strData.replace(/":([0-9]{0,}|true|false),"/ig,function(str){
 		return ["\":\"",str.split("\":")[1].split(",")[0],"\",\""].join("");
 	});
 	// Same as above, only for end of line values
@@ -40,9 +42,9 @@ JSON.csv = function(o,options){
 	// Delimiter for each line
 	strData = strData.replace(/"\},\{"/g,"\n").replace(/^\{/,"").replace(/\}$/,"");
 	// Delimiter for each column
-	strData = strData.replace(/","/g,defaults.delimiter);
+	strData = strData.replace(/","/g,options.delimiter);
 	// Setup column headers
-	if(defaults.columnHeaders){
+	if(options.columnHeaders){
 		strData.split("\n")[0].replace(/["|"A-Z|0-9|_"]+:"/ig,function(header){
 			headers.push(header.replace(/^"/,"").replace(/":"$/,""));
 		});
@@ -52,7 +54,7 @@ JSON.csv = function(o,options){
 	// Strip extraneous quotes
 	strData = strData.replace(/"$/,"");
 	// Piece it together
-	strData = [headers.join(","),defaults.columnHeaders?"\n":"",strData].join("");
+	strData = [headers.join(","),options.columnHeaders?"\n":"",strData].join("");
 
 	return strData;
 };
