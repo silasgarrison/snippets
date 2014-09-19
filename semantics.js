@@ -12,6 +12,7 @@
 	> 1.3 Bug fixes that were related to improper use of RegEx when normal substr replacement would do
  * @file        semantic.js
  * @author      Silas Garrison (http://silasgarrison.com/)
+ * @source		https://github.com/silasgarrison/snippets/blob/master/semantics.js
  *
  * This source file is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -84,7 +85,6 @@ String.prototype.compile = function(o){
 		doIf,
 		i,
 		len,
-		o=o,
 		rgx={
 			startLoop : /\{\[/,
 			closeLoop : /\]\}/,
@@ -97,10 +97,11 @@ String.prototype.compile = function(o){
 	str = this;
 	
 	doLoops = function(str,obj){
-		var rep = [];
+		var rep = [],
+			fnRep;
 		// Replacement callback
 		var doReplace = function(key,plc,origStr){
-			var arrName,arrCond,i,len,arr,itm,itr,thisItr,newStr,start=0,end=Infinity,key;
+			var arrName,arrCond,i,len,arr,itm,itr,thisItr,newStr,start=0,end=Infinity;
 			// Get the key name
 			arrName = key.replace(rgx.startLoop,"").replace(rgx.closeLoop,"");
 			// Check if a limitation has been placed
@@ -132,7 +133,7 @@ String.prototype.compile = function(o){
 
 						// Put private pointer to loop iteration sequence
 						if(!itm.__parent){
-							var itm = JSON.clone(itm);
+							itm = JSON.clone(itm);
 							itm.__key = key;
 							itm.__i = i;
 							itm.__parent = obj;
@@ -155,7 +156,7 @@ String.prototype.compile = function(o){
 
 					// Put private pointer to loop iteration sequence
 					if(!itm.__parent){
-						var itm = JSON.clone(itm);
+						itm = JSON.clone(itm);
 						itm.__i = i;
 						itm.__parent = obj;
 					}
@@ -176,12 +177,14 @@ String.prototype.compile = function(o){
 	
 		str.replace(rgx.loopName,doReplace);
 		
+		fnRep = function(itm,idx){
+			// Replace template/HTML source with the compiled version
+			str = str.replace(itm.thisStr,itm.thatStr);
+		};
+		
 		// If the replacement array contains values, iterate over it and call the regex again until it's empty
 		while(rep.length > 0){
-			rep.forEach(function(itm,idx){
-				// Replace template/HTML source with the compiled version
-				str = str.replace(itm.thisStr,itm.thatStr);
-			});
+			rep.forEach(fnRep);
 			// Clear out the replacements
 			rep = [];
 			str = str.replace(rgx.loopName,doReplace);
@@ -217,7 +220,7 @@ String.prototype.compile = function(o){
 						}
 					});
 					// If the property wasn't rendered above (no operators) parse it now
-					prop = prop === null?["{",expr,"}"].join("").assign(obj,helpers):prop,
+					prop = prop === null?["{",expr,"}"].join("").assign(obj,helpers):prop;
 					val = str.split(cmd)[1].trim();
 					
 					return this[cmd]();
