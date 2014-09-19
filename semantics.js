@@ -355,25 +355,6 @@ String.prototype.compile = function(o){
 	return doIf(doLoops(str,o),o).assign(o,helpers);
 };
 
-// Escape all special characters (i.e. <div>{name}</div> >> rsafe() >> <div>\{name\}<\/div>)
-String.prototype.rsafe = function(){
-	"use strict";
-	
-	var str,cha,i,len;
-	
-	str = this;
-	cha = ["\\","[","]","+","*","^","/","(",")"];
-	
-	cha.forEach(function(itm,idx){
-		str = str.replace(new RegExp("\\" + itm,"g"),"\\" + itm);
-	});
-	
-	str = str.replace(/\{/ig,"\\{");
-	str = str.replace(/\}/ig,"\\}");
-	
-	return str;
-};
-
 // Simple assignment function for outputting object variables in a string (i.e. Hello, {name} >> assign({name:"Silas"}) >> Hello, Silas)
 String.prototype.assign = function (o,helpers){
 	"use strict";
