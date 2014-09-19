@@ -1,7 +1,7 @@
 /**
  * @summary     semantics
  * @description Simple string compiler for creating semantic templates
- * @version     1.2
+ * @version     1.3
  	> x-1.0 Basic array iteration and simple truthy/falsy statements
  	> 1.1 Added support for diverse conditional statements that go beyond simple truthy/falsy statements
 		- Added private variable ".__i" inside a loop's context for getting the current iteration's index
@@ -9,6 +9,7 @@
 		- Fix for nested loops to not always point to the top level object but to each loops context is the item's object
 		- Added support for modulus and division in if statements
 		- Added support for helper methods to format or extend variables
+	> 1.3 Bug fixes that were related to improper use of RegEx when normal substr replacement would do
  * @file        semantic.js
  * @author      Silas Garrison (http://silasgarrison.com/)
  *
@@ -74,6 +75,7 @@ if(!JSON.clone){
 }
 
 // Builds a compiled template off a source string and object - uses the assign method to populate strings but has built-in support for array iteration and simple if block conditionals
+var debugs = {};
 String.prototype.compile = function(o){
 	"use strict";
 	
@@ -177,8 +179,8 @@ String.prototype.compile = function(o){
 		// If the replacement array contains values, iterate over it and call the regex again until it's empty
 		while(rep.length > 0){
 			rep.forEach(function(itm,idx){
-				// Build a regex safe string of the source template/HTML and replace it with the compiled version
-				str = str.replace(new RegExp(itm.thisStr.rsafe()),itm.thatStr);
+				// Replace template/HTML source with the compiled version
+				str = str.replace(itm.thisStr,itm.thatStr);
 			});
 			// Clear out the replacements
 			rep = [];
@@ -207,7 +209,7 @@ String.prototype.compile = function(o){
 								return a / b;
 							}
 						},
-						expr = str.split(cmd)[0];
+						expr = str.split(cmd)[0].trim();
 					// Loop through each possible operator allowed and parse the property if found
 					opr.forEach(function(itm,idx){
 						if(expr.indexOf(itm) !== -1){
@@ -217,6 +219,7 @@ String.prototype.compile = function(o){
 					// If the property wasn't rendered above (no operators) parse it now
 					prop = prop === null?["{",expr,"}"].join("").assign(obj,helpers):prop,
 					val = str.split(cmd)[1].trim();
+					
 					return this[cmd]();
 				},
 				"===" : function(){
@@ -258,7 +261,7 @@ String.prototype.compile = function(o){
 		if(lastIndex !== -1){
 			// Find all instances of {if:condition}
 			str = str.replace(rgx.startIf,function(key,plc,str){
-				var stm,res,itr,optA,optB,i,arr,open,closed,exCnt=0;
+				var stm,res,itr,optA,optB,i,arr,open,closed,exCnt=0,replacer,toReplace;
 				
 				// The key is the condition (i.e. {if:name} would be name)
 				stm = key.split(":")[1].split("}")[0];
@@ -267,21 +270,24 @@ String.prototype.compile = function(o){
 				// Get the parts of this if block
 				arr = str.substr(plc).split(key)[1].split("{/if}");
 				// These counters keep track of which if statement is open/closed and iteration counter
-				i=0;
-				open=1;
-				closed=0;
-				itr = "";
+				i = 0;
+				open = 1;
+				closed = 0;
+				itr = [];
 				
 				while(i < arr.length){
 					closed += 1;
-					// If the number of open and closed tags match, add the string to the if body
-					if(open === closed){
-						itr += arr[i] + ((i+1 < arr.length)?"{/if}":"");
+					// If we haven't closed this if body, add the string to the if body
+					if(open >= closed){
+						itr.push(arr[i]);
 					}
 					open += arr[i].split("{if:").length - 1;
 					
 					++i;
 				}
+				
+				itr = itr.join("{/if}");
+				
 				// Now determine else statements
 				arr = itr.split("{else}");
 				// If there's more than one else (meaning other if statements are in the body of this if)
@@ -318,7 +324,15 @@ String.prototype.compile = function(o){
 				}
 				
 				// Now replace the conditional statement with the result (i.e. {if:name}Hello, {name}{else}No name found{/if} >> No name found)
-				finalStr = finalStr.replace(new RegExp(key + itr.rsafe()),(res?optA:optB));
+				replacer = (res?optA:optB).trim();
+				// Strip any unparsed/invalid statements
+				if(replacer.substr(replacer.length-5) === "{/if}" && replacer.indexOf("{if:}") === -1){
+					replacer = replacer.substr(0,replacer.length - 5);
+				}
+				// Build back what the original string was and add closing if since it get stripped
+				toReplace = [key,itr,"{/if}"].join("");
+				
+				finalStr = finalStr.replace(toReplace,replacer);
 				
 				// Parse any other if blocks - make sure the last if block isn't this one (aka, bad syntax)
 				while(finalStr.indexOf("{if:") !== -1 && finalStr.indexOf("{if:") !== lastIndex){
@@ -376,4 +390,3 @@ String.prototype.assign = function (o,helpers){
 		});
 	return str;
 };
-
