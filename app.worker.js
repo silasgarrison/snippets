@@ -1,10 +1,11 @@
 /**
  * @summary     app.worker.js
  * @description Simplifies using web workers by creating inline workers via Blob objects and an easier API
- * @version     1.2
+ * @version     1.3
  	> 1.0 Initial version
 	> 1.1 Added basic getters and setters (with optional callbacks) for passing data back and forth to the worker
 	> 1.2 Added retrieve method to the worker so the worker can call variables from the client side
+	> 1.3 Updated function string parser to pull in name contextually from original function
  * @file        app.worker.js
  * @author      Silas Garrison (http://silasgarrison.com/)
  *
@@ -23,7 +24,7 @@
 			while(new Date().getTime() < dts){
 				// do nothing
 			};
-			
+
 			// Now that I'm on the worker side, I decide I want something from the client
 			// Note: "this" is the controls variable on the worker
 			this.retrieve(
@@ -40,7 +41,7 @@
 				// arguments to pass to both functions - can be of any type
 				"Hey document"
 			);
-	
+
 			// Respond with a done message
 			return "Done processing!";
 		},
@@ -64,16 +65,16 @@ app.addFeature("worker",function(){
 		// Run as a closure since we're creating it as a blob, it'll need to execute immediately
 		var ctrl;
 		(function(target){
-			
+
 			var controls = null,
 				started = false,
 				log;
-			
+
 			// Shortcut
 			function log(msg){
 				controls.sendMessage("log",msg);
 			}
-			
+
 			// Helper function
 			function rand(){
 				return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
@@ -81,7 +82,7 @@ app.addFeature("worker",function(){
 					return v.toString(16);
 				});
 			}
-			
+
 			return ctrl = controls = {
 				// Attach the event listener
 				init : function(){
@@ -93,16 +94,16 @@ app.addFeature("worker",function(){
 				// Handle when messages come in from the client
 				receiveMessage : function(e) {
 					var msgData = e.data;
-		
+
 					// Make sure the command is invalid
 					if(msgData.cmd && controls[msgData.cmd]){
 						// Pass in the args parameter as the main source of arguments
 						// Then use the controls object as the execution context so we can easily control/access the worker
 						controls[msgData.cmd].apply(controls,[msgData.args]);
-			
+
 						return;
 					}
-					
+
 					// Otherwise reply with an error
 					controls.log("Error: Invalid command received.");
 				},
@@ -124,14 +125,14 @@ app.addFeature("worker",function(){
 						if(hasCallBack){
 							this.sendMessage(name,results || args);
 						}
-						
+
 						return results;
 					};
 				},
 				// Setter method to put data from the client on the worker
 				set : function(args){
 					this[args.name] = args.value;
-					
+
 					// Execute any callback that may have be created with this setter on the client
 					if(args.hasCallBack){
 						this.sendMessage("set" + args.name,args);
@@ -142,9 +143,9 @@ app.addFeature("worker",function(){
 					if(!this[args.name]){
 						this[args.name] = []
 					}
-					
+
 					this[args.name] = this[args.name].concat(args.value);
-					
+
 					// Execute any callback that may have be created with this setter on the client
 					if(args.hasCallBack){
 						this.sendMessage("concat" + args.name,args);
@@ -191,41 +192,39 @@ app.addFeature("worker",function(){
 				// Kill off the worker
 				stop : function(){
 					var key;
-					
+
 					log("Whewww, I'm done!");
-					
-					// In case they've attached large objects, delete all references
-					for(key in this){
-						if(this.hasOwnProperty(key)){
-							delete this[key];
-						}
-					}
-					
+
 					target.close();
 				},
 				// Callback stack the worker may post functions to
 				__callbacks : {}
 			};
-		
+
 		})(this).init();
 	}
-		
+
 	// Helper method to parse functions as strings
 	function fn2Str(fn){
 		var content = typeof fn === "function"?fn.toString():fn,
-			args = content.split("{")[0].split("(")[1].split(")")[0].trim() || "args";
-		
+			args = content.split("{")[0].split("(")[1].split(")")[0].trim() || "args",
+			name = content.split("function")[1].split("(")[0].trim();
+
 		// Parse out the body/content of the function to be compiled later
 		content = content.split("{").slice(1).join("{");
 		content = content.split("}");
 		content = content.slice(0,content.length - 1).join("}");
 
-		return {args:args,content:content};
+		return {
+			name : name,
+			args : args,
+			content : content
+		};
 	}
-		
+
 	function create(fnErr){
 		var w,worker,blob,controls,url;
-		
+
 		// Parse out the function above to a string, add the helper method then convert to a blob object
 		w = [fn2Str.toString(),"\n",fn2Str(workerEngine).content].join("");
 		blob = new Blob([w]);
@@ -251,7 +250,7 @@ app.addFeature("worker",function(){
 		worker.onerror = fnErr || function(event){
 			throw new Error(event.message + " (" + event.filename + ":" + event.lineno + ")");
 		};
-		
+
 		// This is a mthod to be called FROM the worker, not the client, so don't expose it to the API
 		function retrieve(args){
 			// Create a function locally from string version passed in from worker
@@ -259,7 +258,7 @@ app.addFeature("worker",function(){
 				fn = new Function(fnStr.args,fnStr.content),
 				// Execute and pull back results
 				results = fn.apply(controls,[args.args]);
-				
+
 			// Send back to the listener "receive" the results,
 			// the callback originally instantiated on the worker side
 			// and any arguments passed from the worker
@@ -272,7 +271,7 @@ app.addFeature("worker",function(){
 				}
 			);
 		}
-			
+
 		return controls = {
 			log : function(msg){
 				console.log(msg.msg || msg);
@@ -282,12 +281,12 @@ app.addFeature("worker",function(){
 				var cmd = typeof cmd === "string"?{cmd:cmd,args:args}:cmd;
 				// Post the message to the worker
 				worker.postMessage(cmd);
-			
+
 				return controls;
 			},
 			stop : function(){
 				controls.send("stop");
-			
+
 				return controls;
 			},
 			concat : function(name,value,callback,context){
@@ -297,9 +296,9 @@ app.addFeature("worker",function(){
 						callback.apply(context || controls,[args]);
 					};
 				}
-				
+
 				controls.send("concat",{name:name,value:value,hasCallBack:!!callback});
-			
+
 				return controls;
 			},
 			set : function(name,value,callback,context){
@@ -309,9 +308,9 @@ app.addFeature("worker",function(){
 						callback.apply(context || controls,[args]);
 					};
 				}
-				
+
 				controls.send("set",{name:name,value:value,hasCallBack:!!callback});
-			
+
 				return controls;
 			},
 			get : function(name,callback,context){
@@ -319,15 +318,15 @@ app.addFeature("worker",function(){
 				controls["get" + name] = function(args){
 					callback.apply(context || controls,[args]);
 				};
-				
+
 				controls.send("get",name);
-					
+
 				return controls;
 			},
 			attach : function(name,fnSend,callback,context){
 				var fnString = fn2Str(fnSend),
 					origCallback = callback;
-				
+
 				// Send the message to the worker to attach the above method
 				controls.send("attach",{name:name,content:fnString.content,argName:fnString.args,hasCallBack:!!callback});
 				// Attach a matching named object as the one on the worker - allow customCallback to change the callback at runtime
@@ -345,21 +344,21 @@ app.addFeature("worker",function(){
 						return controls.send(name,_args || "");
 					}
 				};
-				
+
 				return controls;
 			},
 			importScripts : function(scrpt){
 				// Call it "getScripts" on the worker since importScripts is a global method there
 				// and we don't want to ever collide namespaces
 				controls.send("getScripts",scrpt);
-				
+
 				return controls;
 			}
 		};
 	}
-	
+
 	this.create = create;
-	
+
 	return this;
 
 });
