@@ -6,8 +6,7 @@ Generic namespace wrapper for modularizing features of JavaScript based applicat
 
 **Adding properties/parameters to the app**
 
-```
-#!javascript
+```javascript
 
 app.addParam(
 	"config",
@@ -29,8 +28,7 @@ alert(app.config.name);
 1. Any variable added to "this" scope is exposed as: app.FeatureName.exposedVariable
 
 
-```
-#!javascript
+```javascript
 
 // Features are functions that get executed as
 app.addFeature(
@@ -80,8 +78,7 @@ app.someFeature.sayHello(); // alerts "Silas"
 
 **Built-in methods on app**
 
-```
-#!javascript
+```javascript
 
 /*
 	TODO: Some of this needs to be rethought
@@ -116,8 +113,7 @@ app.init app.deferred instance (
 
 A simple feature to easily handle asyncronization execution and messy callbacks
 
-```
-#!javascript
+```javascript
 
 function async(){
 	// Pass in "1" or an "n" times the process has to be deferred
@@ -183,8 +179,7 @@ passed off in iOS when using the share link in Safari we have to scrape it out f
 
 This feature simplifies using web workers by creating inline workers via Blob objects and an easier API.
 
-```
-#!javascript
+```javascript
 
 var myWorker = app.worker.create();
 // Create a method on the worker called "takeLong"
