@@ -1,7 +1,7 @@
 /**
  * @summary     app
  * @description Wrapper for creating objects and functions under a generic name space for web apps
- * @version     1.0
+ * @version     1.1
  * @file        app.js
  * @author      Silas Garrison (http://silasgarrison.com/)
  *
@@ -52,42 +52,71 @@ var app = (function(){
 		inst,
 		accessors,
 		copy,
-		clone;
+		clone,
+		toInit = [];
 
 	function _app(){
 		return this;
-	};
+	}
 
 	function register(obj,key,val){
 		obj[key] = val;
 		return obj;
-	};
+	}
 
 	function addFeature(name,engine){
+		var eng;
 		engine.contructor = this;
 		engine.prototype = accessors;
-		return register(this,name,new engine());
-	};
+		eng = new engine();
+		// Check to see if this has to be initialized
+		if(typeof eng.init === "function"){
+			toInit.push(name);
+		}
+		return register(this,name,eng);
+	}
+
+	function init(){
+		if(app.deferred !== undefined){
+			var def = app.deferred(toInit.length);
+
+			toInit.forEach(function(module){
+				var initObj = inst[module].init() || {};
+
+				// If this init object has a deferred mechanism involved, use it.  Otherwise, just mark this instance as done
+				if(initObj.finished){
+					initObj.finished(function(){
+						def.next();
+					});
+				}
+				else {
+					def.next();
+				}
+			});
+
+			return def;
+		}
+	}
 
 	function removeFeature(name){
 		delete this[name];
 		return this;
-	};
+	}
 
 	function addParam(name,param){
 		this[name] = param;
 		return this;
-	};
+	}
 
 	function addParams(params){
 		copy(params,this);
 		return this;
-	};
+	}
 
-	function copy(src,target,overwrite){
-		var overwrite = typeof overwrite === "boolean"?overwrite:true,
+	function copy(src,target,overwrite,doClone){
+		var overwrite = typeof overwrite === "boolean"?overwrite:false,
 			key,
-			src = clone(src);
+			src = doClone === true || doClone === undefined?clone(src):src;
 
 		for(key in src){
 			if(typeof target[key] === "undefined" || overwrite){
@@ -96,7 +125,7 @@ var app = (function(){
 		}
 
 		return target;
-	};
+	}
 
 	function clone(obj){
 		var newObj,
@@ -107,7 +136,7 @@ var app = (function(){
 		newObj.constructor = obj;
 
 		return newObj;
-	};
+	}
 
 	accessors = {
 		addFeature : addFeature,
@@ -125,6 +154,10 @@ var app = (function(){
 		copy : copy,
 		clone : clone
 	});
+
+	// Add default init method which allows for features to initialize themselves later
+	// Features added to the app must have an exposed method called "init" to be added to this
+	inst.addParam("init",init);
 
 	return inst;
 })();
